@@ -1,4 +1,7 @@
 import type sqlite3 from 'sqlite3';
+import { debug } from '../../shared/logger';
+
+const TAG = 'Queries';
 
 /**
  * Recursive CTE: sum weight of all descendants of a given item_instances row.
@@ -9,6 +12,7 @@ export function getSubtreeWeightRecursive(
   db: sqlite3.Database,
   parentId: number
 ): Promise<number> {
+  debug(TAG, 'getSubtreeWeightRecursive', { parentId });
   const sql = `
     WITH RECURSIVE descendants(id, w) AS (
       SELECT i.id, COALESCE(d.weight, 0) * i.quantity
@@ -26,7 +30,9 @@ export function getSubtreeWeightRecursive(
   return new Promise((resolve, reject) => {
     db.get<{ total: number }>(sql, [parentId], (err, row) => {
       if (err) return reject(err);
-      resolve(row?.total ?? 0);
+      const total = row?.total ?? 0;
+      debug(TAG, 'getSubtreeWeightRecursive result', { parentId, total });
+      resolve(total);
     });
   });
 }

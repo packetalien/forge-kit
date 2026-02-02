@@ -1,4 +1,7 @@
 import type { Vector, Ingredient, EffectNode, DiscoveryRecipe } from './types';
+import { debug } from './logger';
+
+const TAG = 'SynthesisEngine';
 
 export type BaseLiquid = 'water' | 'oil' | 'mercury';
 
@@ -35,6 +38,7 @@ export class SynthesisEngine {
     baseLiquid: BaseLiquid = 'water',
     effectNodes: EffectNode[] = DEFAULT_EFFECT_NODES
   ) {
+    debug(TAG, 'constructor', { baseLiquid });
     this.baseLiquid = baseLiquid;
     this.position = { ...BASE_POSITIONS[baseLiquid] };
     this.effectNodes = effectNodes;
@@ -49,6 +53,7 @@ export class SynthesisEngine {
   }
 
   addIngredient(ingredient: Ingredient): void {
+    debug(TAG, 'addIngredient', { name: ingredient.name, vector: ingredient.vector });
     this.ingredients.push(ingredient);
     this.position.x += ingredient.vector.x;
     this.position.y += ingredient.vector.y;
@@ -56,9 +61,11 @@ export class SynthesisEngine {
       this.position.x += Math.sign(ingredient.vector.x) * 0.5;
       this.position.y += Math.sign(ingredient.vector.y) * 0.5;
     }
+    debug(TAG, 'position after add', this.position);
   }
 
   useTool(tool: 'alembic' | 'mortar'): void {
+    debug(TAG, 'useTool', { tool });
     if (tool === 'mortar') {
       this.position.x = Math.round(this.position.x);
       this.position.y = Math.round(this.position.y);
@@ -82,6 +89,7 @@ export class SynthesisEngine {
     }
     const potion =
       nodes.length > 0 ? nodes.join('-') : 'Unknown';
+    debug(TAG, 'computeFinalEffect', { potion, nodes, position: this.position });
     return {
       potion,
       nodes,
@@ -90,6 +98,7 @@ export class SynthesisEngine {
   }
 
   saveRecipe(name: string): void {
+    debug(TAG, 'saveRecipe', { name });
     const result = this.computeFinalEffect();
     this.discoveryBook[name] = {
       name,

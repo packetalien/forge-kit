@@ -13,22 +13,38 @@ export function GMDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    debug(TAG, 'useEffect: connecting', GM_WS_URL);
     setError(null);
     const ws = new WebSocket(GM_WS_URL);
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onerror = () => setError('WebSocket error');
+    ws.onopen = () => {
+      debug(TAG, 'ws onopen');
+      setConnected(true);
+    };
+    ws.onclose = () => {
+      debug(TAG, 'ws onclose');
+      setConnected(false);
+    };
+    ws.onerror = () => {
+      debug(TAG, 'ws onerror');
+      setError('WebSocket error');
+    };
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data as string);
+        debug(TAG, 'ws onmessage', { type: msg.type });
         if (msg.type === 'snapshot' && msg.payload) {
           setSnapshot(msg.payload as SnapshotPayload);
+          debug(TAG, 'snapshot set', { locations: (msg.payload as SnapshotPayload).tree?.length });
         }
-      } catch {
+      } catch (e) {
+        debug(TAG, 'ws message parse error', e);
         setError('Invalid message');
       }
     };
-    return () => ws.close();
+    return () => {
+      debug(TAG, 'useEffect cleanup: close ws');
+      ws.close();
+    };
   }, []);
 
   return (

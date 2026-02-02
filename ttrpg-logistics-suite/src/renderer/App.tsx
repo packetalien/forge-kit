@@ -5,7 +5,9 @@ import { AlchemyBench } from './components/AlchemyBench';
 import { WorldView } from './pages/WorldView';
 import { GMDashboard } from './components/GMDashboard';
 import type { Item, Container } from '@shared/types';
+import { debug } from '@shared/logger';
 
+const TAG = 'App';
 const API = 'http://127.0.0.1:38462';
 
 function flattenTree(
@@ -31,13 +33,17 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   const fetchInventory = useCallback(async () => {
+    debug(TAG, 'fetchInventory');
     try {
       const res = await fetch(`${API}/character/inventory`);
+      debug(TAG, 'fetchInventory response', { status: res.status });
       if (res.ok) {
         const data = await res.json();
         setTree(data);
+        debug(TAG, 'fetchInventory: tree set', { locations: data?.tree?.length });
       }
-    } catch {
+    } catch (e) {
+      debug(TAG, 'fetchInventory error', e);
       setTree(null);
     } finally {
       setLoading(false);
@@ -45,13 +51,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    debug(TAG, 'useEffect: fetchInventory');
     fetchInventory();
   }, [fetchInventory]);
 
   const handlePlace = useCallback(
     async (item: Item, row: number, col: number) => {
+      debug(TAG, 'handlePlace', { itemId: item.id, row, col });
       const container = tree?.tree?.[0]?.containers?.[0];
-      if (!container?.container?.id) return;
+      if (!container?.container?.id) {
+        debug(TAG, 'handlePlace: no container');
+        return;
+      }
       try {
         const res = await fetch(`${API}/api/inventory/place`, {
           method: 'POST',
@@ -64,15 +75,20 @@ function App() {
             rotated: item.rotated ?? false,
           }),
         });
+        debug(TAG, 'handlePlace response', { status: res.status });
         if (res.ok) await fetchInventory();
-      } catch {
-        // ignore
+      } catch (e) {
+        debug(TAG, 'handlePlace error', e);
       }
     },
     [tree, fetchInventory]
   );
 
   const [tab, setTab] = useState<'inventory' | 'alchemy' | 'world' | 'gm'>('inventory');
+  const setTabWithLog = useCallback((t: 'inventory' | 'alchemy' | 'world' | 'gm') => {
+    debug(TAG, 'setTab', { tab: t });
+    setTab(t);
+  }, []);
   const firstContainer = tree?.tree?.[0]?.containers?.[0];
   const container = firstContainer?.container;
   const flatItems = firstContainer?.items ? flattenTree(firstContainer.items as { id: number; slotRow?: number | null; slotCol?: number | null; children?: unknown[] }[]) : [];
@@ -86,28 +102,28 @@ function App() {
           <button
             type="button"
             className={tab === 'inventory' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
-            onClick={() => setTab('inventory')}
+            onClick={() => setTabWithLog('inventory')}
           >
             Inventory
           </button>
           <button
             type="button"
             className={tab === 'alchemy' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
-            onClick={() => setTab('alchemy')}
+            onClick={() => setTabWithLog('alchemy')}
           >
             Alchemy Bench
           </button>
           <button
             type="button"
             className={tab === 'world' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
-            onClick={() => setTab('world')}
+            onClick={() => setTabWithLog('world')}
           >
             World View
           </button>
           <button
             type="button"
             className={tab === 'gm' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
-            onClick={() => setTab('gm')}
+            onClick={() => setTabWithLog('gm')}
           >
             GM Dashboard
           </button>

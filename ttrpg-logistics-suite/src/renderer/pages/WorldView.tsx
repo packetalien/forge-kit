@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { GridWithDnD } from '../components/GridWithDnD';
 import { useWorldStore } from '../stores/world-store';
 import type { Item, Container, Location } from '@shared/types';
+import { debug } from '@shared/logger';
 
+const TAG = 'WorldView';
 const API = 'http://127.0.0.1:38462';
 
 interface ContainerNode {
@@ -60,16 +62,20 @@ export function WorldView() {
   const { selectedLocationId, setSelectedLocation } = useWorldStore();
 
   const fetchInventory = useCallback(async () => {
+    debug(TAG, 'fetchInventory');
     try {
       const res = await fetch(`${API}/character/inventory`);
+      debug(TAG, 'fetchInventory response', { status: res.status });
       if (res.ok) {
         const payload: InventoryPayload = await res.json();
         setData(payload);
         if (payload.tree?.length && selectedLocationId == null) {
           setSelectedLocation(payload.tree[0].location.id);
+          debug(TAG, 'setSelectedLocation initial', payload.tree[0].location.id);
         }
       }
-    } catch {
+    } catch (e) {
+      debug(TAG, 'fetchInventory error', e);
       setData(null);
     } finally {
       setLoading(false);
@@ -82,6 +88,7 @@ export function WorldView() {
 
   const handlePlace = useCallback(
     async (containerId: number, item: Item, row: number, col: number) => {
+      debug(TAG, 'handlePlace', { containerId, itemId: item.id, row, col });
       try {
         const res = await fetch(`${API}/api/inventory/place`, {
           method: 'POST',
@@ -94,9 +101,10 @@ export function WorldView() {
             rotated: item.rotated ?? false,
           }),
         });
+        debug(TAG, 'handlePlace response', { status: res.status });
         if (res.ok) await fetchInventory();
-      } catch {
-        // ignore
+      } catch (e) {
+        debug(TAG, 'handlePlace error', e);
       }
     },
     [fetchInventory]

@@ -2,12 +2,15 @@ import { Request, Response } from 'express';
 import { getDb } from '../db/setup';
 import { broadcastGmSnapshot } from '../gm-sync';
 import { emit as emitPluginHook } from '../plugins/loader';
+import { debug } from '../../shared/logger';
 import type { Item } from '../../shared/types';
 
+const TAG = 'GM';
 const itemColumns =
   'id, name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol, rotated';
 
 export function registerGmRoutes(app: import('express').Application): void {
+  debug(TAG, 'registerGmRoutes');
   app.post('/gm/injectItem', (req: Request, res: Response) => {
     const { name, width = 1, height = 1, containerId = 1 } = req.body as {
       name?: string;
@@ -15,7 +18,9 @@ export function registerGmRoutes(app: import('express').Application): void {
       height?: number;
       containerId?: number;
     };
+    debug(TAG, 'POST /gm/injectItem', { name, width, height, containerId });
     if (!name || typeof name !== 'string') {
+      debug(TAG, '/gm/injectItem: bad request, name required');
       return res.status(400).json({ error: 'name required' });
     }
     const db = getDb();
@@ -43,6 +48,7 @@ export function registerGmRoutes(app: import('express').Application): void {
             slotCol: null,
             rotated: false,
           };
+          debug(TAG, '/gm/injectItem: created', { id: created.id, name: created.name });
           emitPluginHook('onItemCreate', created);
           emitPluginHook('onWeightChange', created);
           res.status(201).json(created);
@@ -53,7 +59,9 @@ export function registerGmRoutes(app: import('express').Application): void {
 
   app.post('/gm/modifyState', (req: Request, res: Response) => {
     const { itemId, state } = req.body as { itemId?: number; state?: Record<string, unknown> };
+    debug(TAG, 'POST /gm/modifyState', { itemId, state });
     if (itemId == null || typeof itemId !== 'number') {
+      debug(TAG, '/gm/modifyState: bad request, itemId required');
       return res.status(400).json({ error: 'itemId (number) required' });
     }
     const db = getDb();
@@ -66,12 +74,14 @@ export function registerGmRoutes(app: import('express').Application): void {
           [state.equipmentSlot === null ? null : String(state.equipmentSlot), itemId],
           (runErr) => {
             if (runErr) return res.status(500).json({ error: String(runErr) });
+            debug(TAG, '/gm/modifyState: updated', { itemId, state });
             broadcastGmSnapshot();
             emitPluginHook('onWeightChange', { itemId, state });
             res.json({ ok: true, itemId, state: state });
           }
         );
       } else {
+        debug(TAG, '/gm/modifyState: no state change');
         broadcastGmSnapshot();
         res.json({ ok: true, itemId });
       }

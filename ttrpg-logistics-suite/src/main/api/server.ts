@@ -18,9 +18,15 @@ import {
   setBrewAttendHours,
   clearBrew,
 } from '../../shared/alchemyEngine';
+import { debug } from '../../shared/logger';
 
+const TAG = 'API';
 const expressApp = express();
 expressApp.use(express.json());
+expressApp.use((req, _res, next) => {
+  debug(TAG, req.method, req.path, req.body && Object.keys(req.body).length ? '(body)' : '');
+  next();
+});
 
 const PORT = 38462;
 const GM_SYNC_PORT = 38463;
@@ -105,10 +111,12 @@ function getInventorySnapshot(): Promise<InventorySnapshot> {
 }
 
 export function startApi(): void {
+  debug(TAG, 'startApi: registering routes');
   const itemColumns =
     'id, name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol, rotated';
 
   expressApp.get('/api/inventory', (_req: Request, res: Response) => {
+    debug(TAG, 'GET /api/inventory');
     const db = getDb();
     db.all<Item>(
       `SELECT ${itemColumns} FROM items ORDER BY left`,
@@ -121,6 +129,7 @@ export function startApi(): void {
   });
 
   expressApp.get('/locations', (_req: Request, res: Response) => {
+    debug(TAG, 'GET /locations');
     const db = getDb();
     db.all<Location>('SELECT id, name, type FROM locations ORDER BY id', [], (err, rows) => {
       if (err) return res.status(500).json({ error: String(err) });
@@ -129,6 +138,7 @@ export function startApi(): void {
   });
 
   expressApp.get('/character/inventory', (_req: Request, res: Response) => {
+    debug(TAG, 'GET /character/inventory');
     const db = getDb();
     db.all<Location>('SELECT id, name, type FROM locations ORDER BY id', [], (errLoc, locations) => {
       if (errLoc) return res.status(500).json({ error: String(errLoc) });
@@ -158,7 +168,9 @@ export function startApi(): void {
 
   expressApp.post('/character/equip', (req: Request, res: Response) => {
     const { itemId, slot } = req.body as { itemId?: number; slot?: string };
+    debug(TAG, 'POST /character/equip', { itemId, slot });
     if (itemId == null || typeof itemId !== 'number' || !slot || typeof slot !== 'string') {
+      debug(TAG, '/character/equip: bad request');
       return res.status(400).json({ error: 'itemId (number) and slot (string) required' });
     }
     if (!EQUIPMENT_SLOTS.includes(slot as any)) {
@@ -192,6 +204,7 @@ export function startApi(): void {
       slotCol?: number;
       rotated?: boolean;
     };
+    debug(TAG, 'POST /api/inventory/place', { itemId, containerId, slotRow, slotCol, rotated });
     if (
       itemId == null ||
       typeof itemId !== 'number' ||
@@ -224,6 +237,7 @@ export function startApi(): void {
               );
               const rot = Boolean(rotated);
               if (!engine.canPlace(item, slotRow, slotCol, rot)) {
+                debug(TAG, '/api/inventory/place: conflict or out of bounds');
                 return res.status(409).json({ error: 'placement conflict or out of bounds' });
               }
               db.run(
@@ -248,6 +262,7 @@ export function startApi(): void {
       vestId?: number;
       slots?: { rows: number[]; cols: number[] };
     };
+    debug(TAG, 'POST /inventory/attach', { pouchId, vestId });
     if (
       pouchId == null ||
       typeof pouchId !== 'number' ||
@@ -279,7 +294,9 @@ export function startApi(): void {
 
   expressApp.post('/api/inventory', (req: Request, res: Response) => {
     const { name, width = 1, height = 1, parentId, containerId = 1 } = req.body as Partial<Item> & { name: string };
+    debug(TAG, 'POST /api/inventory', { name, width, height, containerId });
     if (!name || typeof name !== 'string') {
+      debug(TAG, '/api/inventory: bad request, name required');
       return res.status(400).json({ error: 'name required' });
     }
     const db = getDb();
@@ -430,6 +447,7 @@ export function startApi(): void {
   loadPlugins(pluginsDir, expressApp).then(() => {
     startGmSync(GM_SYNC_PORT, getInventorySnapshot);
     expressApp.listen(PORT, () => {
+      debug(TAG, 'listen', { port: PORT, gmSyncPort: GM_SYNC_PORT });
       if (process.env.NODE_ENV === 'development') {
         console.log(`Local API: http://127.0.0.1:${PORT}`);
         console.log(`GM Sync WS: ws://127.0.0.1:${GM_SYNC_PORT}`);

@@ -1,4 +1,7 @@
 import type { Item } from './types';
+import { debug } from './logger';
+
+const TAG = 'GridEngine';
 
 /** Item footprint for placement (width/height only; rotation applied in engine). */
 export type ItemFootprint = Pick<Item, 'width' | 'height'>;
@@ -12,6 +15,7 @@ export class GridEngine {
   private placed: Map<number, { row: number; col: number; w: number; h: number }> = new Map();
 
   constructor(width: number, height: number) {
+    debug(TAG, 'constructor', { width, height });
     this.width = width;
     this.height = height;
     this.grid = Array.from({ length: height }, () => Array(width).fill(false));
@@ -34,12 +38,20 @@ export class GridEngine {
     rotated = false
   ): boolean {
     const { w, h } = this.effectiveSize(item, rotated);
-    if (row < 0 || col < 0 || row + h > this.height || col + w > this.width) return false;
+    const outOfBounds = row < 0 || col < 0 || row + h > this.height || col + w > this.width;
+    if (outOfBounds) {
+      debug(TAG, 'canPlace: out of bounds', { row, col, w, h });
+      return false;
+    }
     for (let i = 0; i < h; i++) {
       for (let j = 0; j < w; j++) {
-        if (this.grid[row + i]![col + j]!) return false;
+        if (this.grid[row + i]![col + j]!) {
+          debug(TAG, 'canPlace: conflict', { row, col });
+          return false;
+        }
       }
     }
+    debug(TAG, 'canPlace: ok', { row, col, w, h });
     return true;
   }
 
@@ -50,6 +62,7 @@ export class GridEngine {
     rotated = false
   ): void {
     const { w, h } = this.effectiveSize(item, rotated);
+    debug(TAG, 'placeItem', { itemId: item.id, row, col, rotated });
     if (!this.canPlace(item, row, col, rotated)) return;
     for (let i = 0; i < h; i++) {
       for (let j = 0; j < w; j++) {
@@ -62,6 +75,7 @@ export class GridEngine {
   }
 
   removeItem(item: Item & { rotated?: boolean }): void {
+    debug(TAG, 'removeItem', { itemId: item.id });
     const pos = this.placed.get(item.id);
     if (!pos) return;
     const { row, col, w, h } = pos;
@@ -117,6 +131,7 @@ export class GridEngine {
     cols: number[]
   ): { integrity: number } {
     const integrity = rows.length > 2 ? 1.0 : 0.5;
+    debug(TAG, 'attachPouch', { strapPoints: rows.length, integrity });
     return { integrity };
   }
 
@@ -124,11 +139,14 @@ export class GridEngine {
   private static presets: Map<string, { id?: number; row: number; col: number; rotated?: boolean }[]> = new Map();
 
   savePreset(name: string, items: { id?: number; row: number; col: number; rotated?: boolean }[]): void {
+    debug(TAG, 'savePreset', { name, count: items.length });
     GridEngine.presets.set(name, [...items]);
   }
 
   loadPreset(name: string): { id?: number; row: number; col: number; rotated?: boolean }[] {
-    return GridEngine.presets.get(name) ?? [];
+    const items = GridEngine.presets.get(name) ?? [];
+    debug(TAG, 'loadPreset', { name, count: items.length });
+    return items;
   }
 
   /** Build engine from container dimensions and pre-place existing items (for validation/display). */
@@ -137,6 +155,7 @@ export class GridEngine {
     height: number,
     items: (Item & { rotated?: boolean })[]
   ): GridEngine {
+    debug(TAG, 'fromItems', { width, height, itemCount: items.length });
     const engine = new GridEngine(width, height);
     for (const item of items) {
       if (
