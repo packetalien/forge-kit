@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises';
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
+/** Migration SQL is trusted (from repo .sql files). No user input; db.exec is acceptable. */
 function runSql(db: sqlite3.Database, sql: string): Promise<void> {
   return new Promise((resolve, reject) => {
     db.exec(sql, (err) => (err ? reject(err) : resolve()));

@@ -11,20 +11,22 @@ export function getDb(): sqlite3.Database {
   return db;
 }
 
+/**
+ * Initialize DB: ensure data dir exists, open SQLite connection, run migrations.
+ * Uses Promise chain only (no async inside sqlite3 callback) to avoid callback-async anti-pattern.
+ */
 export async function initDb(): Promise<void> {
   const { mkdir } = await import('fs/promises');
   await mkdir(path.dirname(dbPath), { recursive: true });
 
-  return new Promise((resolve, reject) => {
-    db = new sqlite3.Database(dbPath, async (err) => {
-      if (err) return reject(err);
-      try {
-        const { runMigrations } = await import('./migrate');
-        await runMigrations(db!);
-        resolve();
-      } catch (e) {
-        reject(e);
-      }
+  const database = await new Promise<sqlite3.Database>((resolve, reject) => {
+    const conn = new sqlite3.Database(dbPath, (err) => {
+      if (err) reject(err);
+      else resolve(conn);
     });
   });
+
+  const { runMigrations } = await import('./migrate');
+  await runMigrations(database);
+  db = database;
 }
