@@ -48,3 +48,49 @@ export const EQUIPMENT_SLOTS = [
   'quick_2',
 ] as const;
 export type EquipmentSlotKey = (typeof EQUIPMENT_SLOTS)[number];
+
+/** Alchemy: 2D vector on effect grid */
+export interface Vector {
+  x: number;
+  y: number;
+}
+
+/** Ingredient with vector, quality (0–1), and mutation flag */
+export interface Ingredient {
+  name: string;
+  vector: Vector;
+  quality: number;
+  mutable: boolean;
+}
+
+/** Effect node on the synthesis grid (proximity-based) */
+export interface EffectNode {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+/** Discovered recipe stored in Discovery Book */
+export interface DiscoveryRecipe {
+  name: string;
+  ingredients: string[];
+  position: Vector;
+  effectNodes: string[];
+  discoveredAt: number;
+}
+
+/** Plugin manifest (e.g. plugin.json or package.json "plugin" field) */
+export interface PluginManifest {
+  name: string;
+  version: string;
+  apiVersion: string;
+  main?: string;
+}
+
+/** API passed to plugins on register(); app is Express.Application in main */
+export interface PluginAPI {
+  registerHook: (event: string, handler: (...args: unknown[]) => void) => void;
+  app: unknown;
+}

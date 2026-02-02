@@ -38,17 +38,17 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Synthesis engine: Vector-based alchemical calculation; Discovery Book (JSON) for recipes | Backlog |
-| 2 | Crafting UI: Interactive alchemy bench | Backlog |
-| 3 | Ingredient database: Underdark reagents and alchemical vectors | Backlog |
+| 1 | Synthesis engine: Vector-based alchemical calculation; Discovery Book (JSON) for recipes | Done |
+| 2 | Crafting UI: Interactive alchemy bench | Done |
+| 3 | Ingredient database: Underdark reagents and alchemical vectors | Done |
 
 ## Phase 4: Logistics, GM Tools, and Polish (Weeks 10–12)
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Multi-Location Hub: World View (ship cabin, town apartment) | Backlog |
-| 2 | GM WebSocket sync: LAN sync layer; lightweight GM Dashboard | Backlog |
-| 3 | Extensibility: Plugin loader (ESM dynamic imports), PluginManifest, API hooks | Backlog |
+| 1 | Multi-Location Hub: World View (ship cabin, town apartment) | Done |
+| 2 | GM WebSocket sync: LAN sync layer; lightweight GM Dashboard | Done |
+| 3 | Extensibility: Plugin loader (ESM dynamic imports), PluginManifest, API hooks | Done |
 
 ## Backlog
 
@@ -66,6 +66,8 @@
 - Basic window with WebGPU prefs and Tahoe vibrancy option
 - Shared types (Location, Container, Item, EQUIPMENT_SLOTS) and grid placement helpers
 - **Phase 2:** GridEngine (canPlace, placeItem, removeItem, rotateItem, autoSort, fromItems); WebGPU InventoryCanvas + liquidGlass.wgsl; react-dnd GridWithDnD + ItemSlot; ARCHITECTURE + SECURITY docs updated
+- **Phase 3:** SynthesisEngine (addIngredient, useTool, computeFinalEffect, Discovery Book); GET/POST /crafting/recipes, POST /crafting/synthesize; AlchemyBench (DnD cauldron, Brew/Save); alchemy-store (Zustand); UNDERDARK_INGREDIENTS (20+); App tab Inventory | Alchemy Bench
+- **Phase 4:** World View (locations Person / Ship's Cabin / Town Apartment, 004_seed_world_locations.sql, world-store, WorldView tab); GM WebSocket sync (gm-sync.ts port 38463, broadcastGmSnapshot, GMDashboard tab); Plugin loader (PluginManifest, loadPlugins from userData/plugins, registerHook, onItemCreate)
 - Unit and integration tests; Playwright e2e scaffold
 
 ## Glossary

@@ -83,11 +83,20 @@ export async function runMigrations(db: sqlite3.Database): Promise<void> {
   }
 
   const sql003 = await readFile(path.join(MIGRATIONS_DIR, '003_items_schema.sql'), 'utf-8');
-  const statements = sql003
+  const statements003 = sql003
     .split(';')
     .map((s) => s.trim())
     .filter((s) => s.length > 0 && !s.startsWith('--'));
-  for (const stmt of statements) {
+  for (const stmt of statements003) {
+    await runSql(db, stmt + ';');
+  }
+
+  const sql004 = await readFile(path.join(MIGRATIONS_DIR, '004_seed_world_locations.sql'), 'utf-8');
+  const statements004 = sql004
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith('--'));
+  for (const stmt of statements004) {
     await runSql(db, stmt + ';');
   }
 }

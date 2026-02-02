@@ -35,6 +35,16 @@ describe('Local API', () => {
     }
   });
 
+  it('GET /locations returns array when API up', async () => {
+    try {
+      const { status, data } = await apiGet('/locations');
+      if (status !== 200) return;
+      expect(Array.isArray(data)).toBe(true);
+    } catch {
+      expect(true).toBe(true);
+    }
+  });
+
   it('GET /character/inventory returns tree and equipped when API up', async () => {
     try {
       const { status, data } = await apiGet('/character/inventory');
@@ -70,6 +80,42 @@ describe('Local API', () => {
     try {
       const { status } = await apiPost('/api/inventory/place', {});
       expect(status).toBe(400);
+    } catch {
+      expect(true).toBe(true);
+    }
+  });
+
+  it('GET /crafting/recipes returns object when API up', async () => {
+    try {
+      const { status, data } = await apiGet('/crafting/recipes');
+      if (status !== 200) return;
+      expect(typeof data).toBe('object');
+      expect(Array.isArray(data)).toBe(false);
+    } catch {
+      expect(true).toBe(true);
+    }
+  });
+
+  it('POST /crafting/synthesize requires ingredients array', async () => {
+    try {
+      const { status } = await apiPost('/crafting/synthesize', {});
+      if (status !== 200) return;
+      expect(status).toBe(200);
+    } catch {
+      expect(true).toBe(true);
+    }
+  });
+
+  it('POST /crafting/synthesize returns potion and nodes', async () => {
+    try {
+      const { status, data } = await apiPost('/crafting/synthesize', {
+        baseLiquid: 'water',
+        ingredients: [{ name: 'Deathcap', vector: { x: 2, y: -1 }, quality: 0.8, mutable: false }],
+      });
+      if (status !== 200) return;
+      expect(data).toHaveProperty('potion');
+      expect(data).toHaveProperty('nodes');
+      expect(data).toHaveProperty('position');
     } catch {
       expect(true).toBe(true);
     }

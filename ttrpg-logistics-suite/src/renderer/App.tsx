@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { GridWithDnD } from './components/GridWithDnD';
 import { InventoryCanvas } from './components/InventoryCanvas';
+import { AlchemyBench } from './components/AlchemyBench';
+import { WorldView } from './pages/WorldView';
+import { GMDashboard } from './components/GMDashboard';
 import type { Item, Container } from '@shared/types';
 
 const API = 'http://127.0.0.1:38462';
@@ -69,6 +72,7 @@ function App() {
     [tree, fetchInventory]
   );
 
+  const [tab, setTab] = useState<'inventory' | 'alchemy' | 'world' | 'gm'>('inventory');
   const firstContainer = tree?.tree?.[0]?.containers?.[0];
   const container = firstContainer?.container;
   const flatItems = firstContainer?.items ? flattenTree(firstContainer.items as { id: number; slotRow?: number | null; slotCol?: number | null; children?: unknown[] }[]) : [];
@@ -78,8 +82,43 @@ function App() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold">TTRPG Logistics Suite</h1>
         <p className="text-slate-400 text-sm">High-fidelity gear manager for macOS Tahoe</p>
+        <nav className="flex gap-4 mt-2">
+          <button
+            type="button"
+            className={tab === 'inventory' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
+            onClick={() => setTab('inventory')}
+          >
+            Inventory
+          </button>
+          <button
+            type="button"
+            className={tab === 'alchemy' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
+            onClick={() => setTab('alchemy')}
+          >
+            Alchemy Bench
+          </button>
+          <button
+            type="button"
+            className={tab === 'world' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
+            onClick={() => setTab('world')}
+          >
+            World View
+          </button>
+          <button
+            type="button"
+            className={tab === 'gm' ? 'text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-300'}
+            onClick={() => setTab('gm')}
+          >
+            GM Dashboard
+          </button>
+        </nav>
       </header>
       <main>
+        {tab === 'alchemy' && <AlchemyBench />}
+        {tab === 'world' && <WorldView />}
+        {tab === 'gm' && <GMDashboard />}
+        {tab === 'inventory' && (
+          <>
         {loading && <p className="text-slate-400">Loading…</p>}
         {!loading && container && (
           <div className="space-y-4">
@@ -97,6 +136,8 @@ function App() {
         )}
         {!loading && !container && (
           <p className="text-slate-400">Start the app to load inventory. Run <code className="text-slate-300">npm start</code>.</p>
+        )}
+          </>
         )}
       </main>
     </div>

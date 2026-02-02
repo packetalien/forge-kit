@@ -2,7 +2,7 @@
 
 ## Overview
 
-Electron main process hosts the local REST API and SQLite DB (Nested Set Model). The renderer is a Vite-bundled React app with Tailwind; WebGPU is enabled for future grid/shaders. State is managed with Zustand; GM sync is planned via WebSocket.
+Electron main process hosts the local REST API and SQLite DB (Nested Set Model). The renderer is a Vite-bundled React app with Tailwind; WebGPU is enabled for grid/shaders. State is managed with Zustand; GM sync runs over WebSocket (port 38463). Plugins load from userData/plugins via ESM dynamic import.
 
 ## Topology
 
@@ -14,7 +14,29 @@ graph TD
   D --> F[Zustand State]
   C --> G[IPC / HTTP to Renderer]
   H[GM Dashboard] --> I[WebSocket Sync]
+  A --> J[Plugin Loader]
+  J --> C
 ```
+
+## World View (Phase 4)
+
+**Multi-Location Hub:** Locations (Person, Ship's Cabin, Town Apartment) are seeded in migration **004_seed_world_locations.sql**. **GET /locations** returns the list; **GET /character/inventory** returns the full tree per location. **WorldView** (renderer) shows location tabs and, per selected location, containers and **GridWithDnD**; placement uses **POST /api/inventory/place** with the chosen container. **world-store** (Zustand) holds selectedLocationId.
+
+## GM WebSocket Sync (Phase 4)
+
+**gm-sync.ts** (main): WebSocket server on port **38463**. On connection, sends a **snapshot** (tree + equipped) from **getInventorySnapshot()**. After mutations (place, equip, POST /api/inventory), **broadcastGmSnapshot()** pushes the latest snapshot to all connected clients. **GMDashboard** (renderer tab): connects to ws://127.0.0.1:38463, displays last snapshot (locations, container counts, equipped count). Snapshot model: broadcast only when state changes.
+
+```mermaid
+graph TD
+  API[Mutations] --> broadcastGmSnapshot
+  broadcastGmSnapshot --> getInventorySnapshot
+  getInventorySnapshot --> WS[WebSocket Server]
+  WS --> GM[GM Dashboard / LAN clients]
+```
+
+## Plugin Loader (Phase 4)
+
+**PluginManifest** (shared/types): name, version, apiVersion, main (optional entry file). Plugins live in **userData/plugins/**; each plugin is a directory with **manifest.json** or **package.json** (with a "plugin" field) and an ESM entry (default **index.js**). **loadPlugins(pluginsDir, expressApp)** (main/plugins/loader.ts): reads dir, dynamic-imports each plugin entry via **pathToFileURL**, calls **register(api)**. **PluginAPI**: **registerHook(event, handler)** and **app** (Express). Hooks: **onItemCreate** (called after POST /api/inventory). **emit(event, ...args)** runs all handlers for an event. Only userData/plugins is loaded; no eval.
 
 ## Components
 
@@ -23,8 +45,10 @@ graph TD
 | Main        | Window, preload, IPC; starts API and DB  |
 | API         | Express on port 38462; CRUD for items    |
 | DB          | SQLite in userData; Nested Set (left/right) |
-| Renderer    | React + Tailwind; grid, alchemy, pages   |
-| Shared      | Item types, grid placement logic         |
+| Renderer    | React + Tailwind; grid, alchemy, World View, GM Dashboard |
+| Shared      | Item types, grid placement logic, PluginManifest         |
+| GM Sync     | WebSocket server (38463); snapshot broadcast              |
+| Plugins     | ESM loader from userData/plugins; API hooks               |
 
 ## Grid Engine
 
@@ -42,6 +66,22 @@ graph TD
   GE --> DB[SQLite items.slotRow/slotCol/rotated]
 ```
 
+## Alchemy (Phase 3)
+
+**SynthesisEngine** (src/shared/synthesisEngine.ts): Vector-based Coordinate Grid Synthesis. Base liquid (water/oil/mercury) sets initial position; ingredients add vectors; tools (alembic = double position, mortar = round to cardinal). **computeFinalEffect()** returns potion name and effect nodes by proximity to DEFAULT_EFFECT_NODES (healing, poison, haste, resist). **Discovery Book** stored as JSON in userData/crafting/discoveryBook.json; API: **GET /crafting/recipes**, **POST /crafting/synthesize** (baseLiquid, ingredients), **POST /crafting/recipes** (save recipe). **AlchemyBench** (renderer): DnD cauldron, UNDERDARK_INGREDIENTS chips, Brew/Save recipe; **alchemy-store** (Zustand) holds baseLiquid, ingredients, lastResult.
+
+```mermaid
+graph TD
+  SE[SynthesisEngine] --> addIngredient
+  SE --> useTool
+  SE --> computeFinalEffect
+  SE --> saveRecipe
+  computeFinalEffect --> DiscoveryBook
+  API[GET/POST /crafting/*] --> SE
+  AlchemyBench --> alchemy-store
+  AlchemyBench --> SE
+```
+
 ## DB Model
 
 **Nested Set:** Each item has `left` and `right` integer markers. Descendants have `left`/`right` strictly between parent’s. Enables subtree queries with range conditions. Items also have **slotRow**, **slotCol**, **rotated** for grid placement.
@@ -51,6 +91,10 @@ graph TD
 - **Nested Set** — Hierarchy model using left/right markers for efficient subtree queries.
 - **WebGPU** — Low-level GPU API for Tahoe/Metal; used for grid and Liquid Glass effects.
 - **GridEngine** — 2D slot occupancy and placement (canPlace, placeItem, rotateItem, autoSort).
+- **SynthesisEngine** — Vector-based alchemy (addIngredient, useTool, computeFinalEffect, Discovery Book).
+- **Discovery Book** — JSON file (userData/crafting/discoveryBook.json) of discovered recipes.
+- **PluginManifest** — name, version, apiVersion, main; declares ESM plugin for userData/plugins.
+- **Snapshot (sync)** — State (tree + equipped) broadcast to GM clients only when changes occur.
 
 ## WebGPU
 
