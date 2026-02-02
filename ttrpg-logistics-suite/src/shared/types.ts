@@ -26,6 +26,8 @@ export interface Item {
   equipmentSlot: string | null;
   slotRow: number | null;
   slotCol: number | null;
+  /** 90° CCW rotation: effective footprint becomes height×width (DB: 0/1) */
+  rotated?: boolean | number;
 }
 
 export interface GridCell {

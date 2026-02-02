@@ -58,6 +58,7 @@ export async function runMigrations(db: sqlite3.Database): Promise<void> {
         equipmentSlot TEXT,
         slotRow INTEGER,
         slotCol INTEGER,
+        rotated INTEGER DEFAULT 0,
         FOREIGN KEY (parentId) REFERENCES items(id),
         FOREIGN KEY (containerId) REFERENCES containers(id)
       )
@@ -72,6 +73,10 @@ export async function runMigrations(db: sqlite3.Database): Promise<void> {
       await runSql(db, 'ALTER TABLE items ADD COLUMN slotRow INTEGER');
       await runSql(db, 'ALTER TABLE items ADD COLUMN slotCol INTEGER');
       await runSql(db, 'UPDATE items SET containerId = 1 WHERE containerId IS NULL');
+    }
+    const hasRotated = cols.some((c) => c.name === 'rotated');
+    if (!hasRotated) {
+      await runSql(db, 'ALTER TABLE items ADD COLUMN rotated INTEGER DEFAULT 0');
     }
     await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_items_nested ON items(left, right)');
   }

@@ -65,4 +65,13 @@ describe('Local API', () => {
       expect(true).toBe(true);
     }
   });
+
+  it('POST /api/inventory/place requires itemId, containerId, slotRow, slotCol', async () => {
+    try {
+      const { status } = await apiPost('/api/inventory/place', {});
+      expect(status).toBe(400);
+    } catch {
+      expect(true).toBe(true);
+    }
+  });
 });

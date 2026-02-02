@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { getDb } from '../db/setup';
 import type { Item, Location, Container } from '../../shared/types';
 import { EQUIPMENT_SLOTS } from '../../shared/types';
+import { GridEngine } from '../../shared/gridEngine';
 
 const app = express();
 app.use(express.json());
@@ -40,10 +41,13 @@ function buildItemTree(items: Item[], parentLeft?: number, parentRight?: number)
 }
 
 export function startApi(): void {
+  const itemColumns =
+    'id, name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol, rotated';
+
   app.get('/api/inventory', (_req: Request, res: Response) => {
     const db = getDb();
     db.all<Item>(
-      'SELECT id, name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol FROM items ORDER BY left',
+      `SELECT ${itemColumns} FROM items ORDER BY left`,
       [],
       (err, rows) => {
         if (err) return res.status(500).json({ error: String(err) });
@@ -62,7 +66,7 @@ export function startApi(): void {
         (errCont, containers) => {
           if (errCont) return res.status(500).json({ error: String(errCont) });
           db.all<Item>(
-            'SELECT id, name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol FROM items ORDER BY left',
+            `SELECT ${itemColumns} FROM items ORDER BY left`,
             [],
             (errItems, items) => {
               if (errItems) return res.status(500).json({ error: String(errItems) });
@@ -103,7 +107,7 @@ export function startApi(): void {
         if (err2) return res.status(500).json({ error: String(err2) });
         if (conflict) return res.status(409).json({ error: `slot ${slot} already occupied` });
         db.run(
-          'UPDATE items SET containerId = NULL, equipmentSlot = ?, slotRow = NULL, slotCol = NULL WHERE id = ?',
+          'UPDATE items SET containerId = NULL, equipmentSlot = ?, slotRow = NULL, slotCol = NULL, rotated = 0 WHERE id = ?',
           [slot, itemId],
           (err3) => {
             if (err3) return res.status(500).json({ error: String(err3) });
@@ -112,6 +116,63 @@ export function startApi(): void {
         );
       });
     });
+  });
+
+  app.post('/api/inventory/place', (req: Request, res: Response) => {
+    const { itemId, containerId, slotRow, slotCol, rotated = false } = req.body as {
+      itemId?: number;
+      containerId?: number;
+      slotRow?: number;
+      slotCol?: number;
+      rotated?: boolean;
+    };
+    if (
+      itemId == null ||
+      typeof itemId !== 'number' ||
+      containerId == null ||
+      typeof containerId !== 'number' ||
+      typeof slotRow !== 'number' ||
+      typeof slotCol !== 'number'
+    ) {
+      return res.status(400).json({ error: 'itemId, containerId, slotRow, slotCol required' });
+    }
+    const db = getDb();
+    db.get<Container>(
+      'SELECT id, gridWidth, gridHeight FROM containers WHERE id = ?',
+      [containerId],
+      (errCont, container) => {
+        if (errCont) return res.status(500).json({ error: String(errCont) });
+        if (!container) return res.status(404).json({ error: 'container not found' });
+        db.get<Item>(`SELECT ${itemColumns} FROM items WHERE id = ?`, [itemId], (errItem, item) => {
+          if (errItem) return res.status(500).json({ error: String(errItem) });
+          if (!item) return res.status(404).json({ error: 'item not found' });
+          db.all<Item>(
+            `SELECT ${itemColumns} FROM items WHERE containerId = ? AND id != ?`,
+            [containerId, itemId],
+            (errOthers, others) => {
+              if (errOthers) return res.status(500).json({ error: String(errOthers) });
+              const engine = GridEngine.fromItems(
+                container.gridWidth,
+                container.gridHeight,
+                others ?? []
+              );
+              const rot = Boolean(rotated);
+              if (!engine.canPlace(item, slotRow, slotCol, rot)) {
+                return res.status(409).json({ error: 'placement conflict or out of bounds' });
+              }
+              db.run(
+                'UPDATE items SET containerId = ?, equipmentSlot = NULL, slotRow = ?, slotCol = ?, rotated = ? WHERE id = ?',
+                [containerId, slotRow, slotCol, rot ? 1 : 0, itemId],
+                (errUpdate) => {
+                  if (errUpdate) return res.status(500).json({ error: String(errUpdate) });
+                  res.json({ ok: true, itemId, containerId, slotRow, slotCol, rotated: rot });
+                }
+              );
+            }
+          );
+        });
+      }
+    );
   });
 
   app.post('/api/inventory', (req: Request, res: Response) => {
@@ -125,7 +186,7 @@ export function startApi(): void {
       const left = (row?.maxRight ?? 0) + 1;
       const right = left + 1;
       db.run(
-        'INSERT INTO items (name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)',
+        'INSERT INTO items (name, width, height, left, right, parentId, containerId, equipmentSlot, slotRow, slotCol, rotated) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0)',
         [name, width, height, left, right, parentId ?? null, containerId ?? 1],
         function (runErr) {
           if (runErr) return res.status(500).json({ error: String(runErr) });
@@ -141,6 +202,7 @@ export function startApi(): void {
             equipmentSlot: null,
             slotRow: null,
             slotCol: null,
+            rotated: false,
           });
         }
       );

@@ -10,6 +10,7 @@
 ## Audit
 
 - **Initial:** Electron v33+, context isolation, CSP in index.html. No known critical CVEs for stack in use.
+- **Phase 2:** WebGPU used in renderer with context isolation; GPU buffers are renderer-scoped only. No new vulns from grid/DnD (placement validated server-side via GridEngine).
 - Append new findings and mitigations below.
 
 ## Best Practices

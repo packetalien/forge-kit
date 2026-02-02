@@ -30,9 +30,9 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Grid logic: TypeScript 2D grid engine (canPlace, rotateItem, autoSort) | Backlog |
-| 2 | WebGPU: Initialize pipeline; shader for gear icons with Liquid Glass (refraction/depth) | Backlog |
-| 3 | Drag-and-drop: Custom DnD handler wired to grid logic | Backlog |
+| 1 | Grid logic: TypeScript 2D grid engine (canPlace, rotateItem, autoSort) | Done |
+| 2 | WebGPU: Initialize pipeline; shader for gear icons with Liquid Glass (refraction/depth) | Done |
+| 3 | Drag-and-drop: Custom DnD handler wired to grid logic | Done |
 
 ## Phase 3: Alchemy and Crafting (Weeks 7–9)
 
@@ -61,10 +61,11 @@
 
 - Electron-Vite-React-Tailwind setup
 - SQLite items table with Nested Set (left/right)
-- **Migrations:** locations, containers, items (containerId, equipmentSlot, slotRow, slotCol)
-- Express API: GET/POST /api/inventory; **GET /character/inventory** (tree + equipped); **POST /character/equip** (slot conflict checks)
+- **Migrations:** locations, containers, items (containerId, equipmentSlot, slotRow, slotCol, **rotated**)
+- Express API: GET/POST /api/inventory; **GET /character/inventory** (tree + equipped); **POST /character/equip**; **POST /api/inventory/place** (GridEngine validation)
 - Basic window with WebGPU prefs and Tahoe vibrancy option
 - Shared types (Location, Container, Item, EQUIPMENT_SLOTS) and grid placement helpers
+- **Phase 2:** GridEngine (canPlace, placeItem, removeItem, rotateItem, autoSort, fromItems); WebGPU InventoryCanvas + liquidGlass.wgsl; react-dnd GridWithDnD + ItemSlot; ARCHITECTURE + SECURITY docs updated
 - Unit and integration tests; Playwright e2e scaffold
 
 ## Glossary
