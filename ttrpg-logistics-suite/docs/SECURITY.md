@@ -19,7 +19,15 @@
   - **tmp / inquirer:** tmp ≤0.2.3 vuln (GHSA-52f5-9888-hmc6) in @inquirer/prompts chain; no fix available from audit fix. Low runtime impact (editor prompts).
   - **db/setup.ts:** Refactored to remove callback-async anti-pattern: open DB in a pure Promise, then run migrations in .then(). No async inside sqlite3 callback.
   - **migrate.ts:** Migration SQL is trusted (repo .sql files only); no user input. Documented in code.
+- **Vulnerability Analysis (external, 2026):** Repo assessed as low–medium risk. No critical unfixed runtime vulns in core stack (Electron 39, Vite 5.4.21, Express 4.22.1). Remaining npm audit issues are build-time (tar in node-gyp chain, tmp in inquirer). Code: contextIsolation, no nodeIntegration, localhost-only API. SQLite: trusted migrations only; API uses prepared statements / validated params. Hardening applied below.
 - Append new findings and mitigations below.
+
+## Hardening Applied (post–vuln analysis)
+
+- **BrowserWindow:** `webPreferences.sandbox: true` enabled (OS-level sandbox for renderer).
+- **CSP (index.html):** Tightened with `object-src 'none'; base-uri 'self'` and `connect-src` including `ws://127.0.0.1:*` for GM WebSocket.
+- **Dependencies:** Express ^4.22.1 (XSS/redirect fixes). Vite ^5.4.21 (CVE-2025-62522, CVE-2025-58751 dev-server fs bypass fixes). Electron ^39.x.
+- **SQL/API:** All DB writes use parameterized queries or trusted migration SQL; API validates types before use. Consider express-validator for additional validation; run npm audit/Snyk in CI.
 
 ## Best Practices
 

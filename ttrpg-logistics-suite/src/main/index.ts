@@ -16,6 +16,7 @@ function createWindow(): void {
       nodeIntegration: false,
       webSecurity: true,
       webgpu: true,
+      sandbox: true,
     },
     titleBarStyle: 'hidden',
     show: false,
