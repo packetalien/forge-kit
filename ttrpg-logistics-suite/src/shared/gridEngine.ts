@@ -107,6 +107,30 @@ export class GridEngine {
     return results;
   }
 
+  /**
+   * PALS/MOLLE: attach pouch to vest; integrity 1.0 if multiple strap points, else 0.5 (wobble risk).
+   */
+  attachPouch(
+    _pouch: ItemFootprint & { id?: number },
+    _vest: { gridWidth: number; gridHeight: number },
+    rows: number[],
+    cols: number[]
+  ): { integrity: number } {
+    const integrity = rows.length > 2 ? 1.0 : 0.5;
+    return { integrity };
+  }
+
+  /** In-memory preset name → placements (for loadout presets). Not persisted across restarts. */
+  private static presets: Map<string, { id?: number; row: number; col: number; rotated?: boolean }[]> = new Map();
+
+  savePreset(name: string, items: { id?: number; row: number; col: number; rotated?: boolean }[]): void {
+    GridEngine.presets.set(name, [...items]);
+  }
+
+  loadPreset(name: string): { id?: number; row: number; col: number; rotated?: boolean }[] {
+    return GridEngine.presets.get(name) ?? [];
+  }
+
   /** Build engine from container dimensions and pre-place existing items (for validation/display). */
   static fromItems(
     width: number,

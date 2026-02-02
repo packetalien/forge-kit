@@ -99,4 +99,28 @@ export async function runMigrations(db: sqlite3.Database): Promise<void> {
   for (const stmt of statements004) {
     await runSql(db, stmt + ';');
   }
+
+  const sql005 = await readFile(path.join(MIGRATIONS_DIR, '005_gurps_tables.sql'), 'utf-8');
+  const statements005 = sql005
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith('--'));
+  for (const stmt of statements005) {
+    await runSql(db, stmt + ';');
+  }
+
+  const containerCols = await getTableInfo(db, 'containers');
+  const hasVolumeLimit = containerCols.some((c) => c.name === 'volume_limit');
+  if (!hasVolumeLimit) {
+    await runSql(db, 'ALTER TABLE containers ADD COLUMN volume_limit REAL');
+  }
+
+  const sql006 = await readFile(path.join(MIGRATIONS_DIR, '006_reagents.sql'), 'utf-8');
+  const statements006 = sql006
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith('--'));
+  for (const stmt of statements006) {
+    await runSql(db, stmt + ';');
+  }
 }

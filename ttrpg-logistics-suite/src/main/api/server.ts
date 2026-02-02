@@ -5,11 +5,19 @@ import { app } from 'electron';
 import { getDb } from '../db/setup';
 import { startGmSync, broadcastGmSnapshot, type InventorySnapshot } from '../gm-sync';
 import { loadPlugins, emit as emitPluginHook } from '../plugins/loader';
+import { registerGmRoutes } from './gm';
 import type { Item, Location, Container, Ingredient, DiscoveryRecipe } from '../../shared/types';
 import { EQUIPMENT_SLOTS } from '../../shared/types';
 import { GridEngine } from '../../shared/gridEngine';
 import { SynthesisEngine } from '../../shared/synthesisEngine';
 import type { DiscoveryBook } from '../../shared/synthesisEngine';
+import {
+  refineReagent,
+  getBrewStatus,
+  startBrew as startBrewState,
+  setBrewAttendHours,
+  clearBrew,
+} from '../../shared/alchemyEngine';
 
 const expressApp = express();
 expressApp.use(express.json());
@@ -234,6 +242,41 @@ export function startApi(): void {
     );
   });
 
+  expressApp.post('/inventory/attach', (req: Request, res: Response) => {
+    const { pouchId, vestId, slots } = req.body as {
+      pouchId?: number;
+      vestId?: number;
+      slots?: { rows: number[]; cols: number[] };
+    };
+    if (
+      pouchId == null ||
+      typeof pouchId !== 'number' ||
+      vestId == null ||
+      typeof vestId !== 'number' ||
+      !slots ||
+      !Array.isArray(slots.rows) ||
+      !Array.isArray(slots.cols)
+    ) {
+      return res.status(400).json({ error: 'pouchId, vestId, slots { rows, cols } required' });
+    }
+    const db = getDb();
+    db.get<Item>(`SELECT ${itemColumns} FROM items WHERE id = ?`, [pouchId], (errPouch, pouch) => {
+      if (errPouch) return res.status(500).json({ error: String(errPouch) });
+      if (!pouch) return res.status(404).json({ error: 'pouch not found' });
+      db.get<Container>(
+        'SELECT id, gridWidth, gridHeight FROM containers WHERE id = ?',
+        [vestId],
+        (errVest, vest) => {
+          if (errVest) return res.status(500).json({ error: String(errVest) });
+          if (!vest) return res.status(404).json({ error: 'vest container not found' });
+          const engine = new GridEngine(vest.gridWidth, vest.gridHeight);
+          const result = engine.attachPouch(pouch, vest, slots.rows, slots.cols);
+          res.json({ ok: true, pouchId, vestId, integrity: result.integrity });
+        }
+      );
+    });
+  });
+
   expressApp.post('/api/inventory', (req: Request, res: Response) => {
     const { name, width = 1, height = 1, parentId, containerId = 1 } = req.body as Partial<Item> & { name: string };
     if (!name || typeof name !== 'string') {
@@ -340,6 +383,49 @@ export function startApi(): void {
     }
   });
 
+  expressApp.post('/crafting/refine', (req: Request, res: Response) => {
+    const { reagent, skill = 0 } = req.body as { reagent?: Ingredient; skill?: number };
+    if (!reagent || typeof reagent.name !== 'string') {
+      return res.status(400).json({ error: 'reagent { name, vector, quality?, mutable? } required' });
+    }
+    const result = refineReagent(
+      {
+        name: reagent.name,
+        vector: reagent.vector ?? { x: 0, y: 0 },
+        quality: typeof reagent.quality === 'number' ? reagent.quality : 0.5,
+        mutable: Boolean(reagent.mutable),
+      },
+      typeof skill === 'number' ? skill : 0
+    );
+    res.json(result);
+  });
+
+  expressApp.get('/crafting/status', (_req: Request, res: Response) => {
+    const status = getBrewStatus();
+    res.json(status ?? { state: 'preparation' });
+  });
+
+  expressApp.post('/crafting/brew/start', (req: Request, res: Response) => {
+    const { recipe, timeMs = 3600000 } = req.body as { recipe?: string; timeMs?: number };
+    if (!recipe || typeof recipe !== 'string') {
+      return res.status(400).json({ error: 'recipe (string) required' });
+    }
+    startBrewState(recipe, typeof timeMs === 'number' ? timeMs : 3600000);
+    res.json({ ok: true, recipe, startedAt: Date.now() });
+  });
+
+  expressApp.post('/crafting/brew/attend', (req: Request, res: Response) => {
+    const { hours } = req.body as { hours?: number };
+    setBrewAttendHours(typeof hours === 'number' ? hours : 0);
+    res.json({ ok: true });
+  });
+
+  expressApp.post('/crafting/brew/clear', (_req: Request, res: Response) => {
+    clearBrew();
+    res.json({ ok: true });
+  });
+
+  registerGmRoutes(expressApp);
   const pluginsDir = path.join(app.getPath('userData'), 'plugins');
   loadPlugins(pluginsDir, expressApp).then(() => {
     startGmSync(GM_SYNC_PORT, getInventorySnapshot);

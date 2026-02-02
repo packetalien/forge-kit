@@ -6,17 +6,19 @@
 - [Phase 2: Grid and Volumetric UI](#phase-2-the-grid-and-volumetric-ui-weeks-4-6)
 - [Phase 3: Alchemy and Crafting](#phase-3-alchemy-and-crafting-weeks-7-9)
 - [Phase 4: Logistics, GM Tools, Polish](#phase-4-logistics-gm-tools-and-polish-weeks-10-12)
+- [Phase 5: GURPS Integration and Metal Upgrade](#phase-5-gurps-integration-and-metal-upgrade-weeks-17-20)
 - [Backlog](#backlog)
 - [Completed](#completed)
 - [Glossary](#glossary)
 - [Index](#index)
 
-## Next Quarter (Phases 1–4)
+## Next Quarter (Phases 1–5)
 
 1. **Phase 1** — Environment, DB (Nested Set + locations/containers/items), Local API (GET/POST inventory, GET character/inventory tree, POST character/equip).
 2. **Phase 2** — Grid logic (canPlace, rotateItem, autoSort), WebGPU pipeline and Liquid Glass shaders, drag-and-drop.
 3. **Phase 3** — Synthesis engine, Discovery Book, alchemy bench UI, ingredient database.
 4. **Phase 4** — World View (multi-location), GM WebSocket sync, GM Dashboard, plugin loader (ESM, PluginManifest).
+5. **Phase 5** — GURPS integration (Recursive CTEs, ItemDefinitions/Instances, GURPS stats), PALS/MOLLE, Metal/WebGPU, Alchemy refining/state-based brewing, GM Command API (injectItem, modifyState), BYOEF hooks.
 
 ## Phase 1: Foundational Systems (Weeks 1–3)
 
@@ -50,12 +52,23 @@
 | 2 | GM WebSocket sync: LAN sync layer; lightweight GM Dashboard | Done |
 | 3 | Extensibility: Plugin loader (ESM dynamic imports), PluginManifest, API hooks | Done |
 
+## Phase 5: GURPS Integration and Metal Upgrade (Weeks 17–20)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Data layer: Recursive CTEs, ItemDefinitions/ItemInstances, GURPS stats (TL, LC, malf, condition), location shards | Done |
+| 2 | Tactical grid: PALS/MOLLE attachPouch, attachment integrity, loadout presets, POST /inventory/attach | Done |
+| 3 | Metal native bridge (3D/Liquid Glass) or WebGPU fallback | Done (WebGPU primary; Metal doc only) |
+| 4 | Alchemy: refining, state-based brewing, Reagents (purity/potency), POST /crafting/refine, GET /crafting/status | Done |
+| 5 | GM Command API: POST /gm/injectItem, /gm/modifyState; BYOEF hooks (e.g. onWeightChange) | Done |
+
 ## Backlog
 
 - Quick-Access slots and HUD overlay
 - Treasure/valuation engine and regional arbitrage
 - Adamantine degradation (Environment Watcher)
 - Logistical Fetch with time-based transit
+- Ledger/currencies, dynamic market, flea market logic (from Gear Management Deep Dive)
 
 ## Completed
 
@@ -68,6 +81,7 @@
 - **Phase 2:** GridEngine (canPlace, placeItem, removeItem, rotateItem, autoSort, fromItems); WebGPU InventoryCanvas + liquidGlass.wgsl; react-dnd GridWithDnD + ItemSlot; ARCHITECTURE + SECURITY docs updated
 - **Phase 3:** SynthesisEngine (addIngredient, useTool, computeFinalEffect, Discovery Book); GET/POST /crafting/recipes, POST /crafting/synthesize; AlchemyBench (DnD cauldron, Brew/Save); alchemy-store (Zustand); UNDERDARK_INGREDIENTS (20+); App tab Inventory | Alchemy Bench
 - **Phase 4:** World View (locations Person / Ship's Cabin / Town Apartment, 004_seed_world_locations.sql, world-store, WorldView tab); GM WebSocket sync (gm-sync.ts port 38463, broadcastGmSnapshot, GMDashboard tab); Plugin loader (PluginManifest, loadPlugins from userData/plugins, registerHook, onItemCreate)
+- **Phase 5:** GURPS data (005_gurps_tables: item_definitions, item_instances, attachments; containers.volume_limit); queries.ts getSubtreeWeightRecursive (Recursive CTE); GridEngine attachPouch, savePreset/loadPreset; POST /inventory/attach; AlchemyEngine refineReagent, startBrew/getBrewStatus; 006_reagents; POST /crafting/refine, GET /crafting/status, /crafting/brew/*; gm.ts POST /gm/injectItem, /gm/modifyState, onWeightChange; Metal doc (WebGPU primary); Weave Mode hint (W)
 - Unit and integration tests; Playwright e2e scaffold
 
 ## Glossary

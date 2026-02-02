@@ -28,6 +28,7 @@ export function GridWithDnD({ container, items, onPlace }: GridWithDnDProps) {
 
   return (
     <DndProvider backend={HTML5Backend}>
+      <p className="text-slate-500 text-xs mb-1">Weave Mode: press <kbd className="px-1 rounded bg-slate-700">W</kbd> for PALS/MOLLE straps</p>
       <div
         className="inline-grid gap-0.5 bg-slate-800 p-2 rounded"
         style={{

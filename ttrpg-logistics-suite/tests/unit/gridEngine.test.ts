@@ -68,6 +68,31 @@ describe('GridEngine', () => {
   });
 });
 
+describe('GridEngine PALS/MOLLE', () => {
+  it('attachPouch returns integrity 0.5 when <=2 strap points', () => {
+    const engine = new GridEngine(8, 6);
+    const vest = { gridWidth: 8, gridHeight: 6 };
+    const result = engine.attachPouch({ width: 2, height: 1 }, vest, [0, 1], [0, 0]);
+    expect(result.integrity).toBe(0.5);
+  });
+
+  it('attachPouch returns integrity 1.0 when >2 strap points', () => {
+    const engine = new GridEngine(8, 6);
+    const vest = { gridWidth: 8, gridHeight: 6 };
+    const result = engine.attachPouch({ width: 2, height: 1 }, vest, [0, 1, 2], [0, 0, 0]);
+    expect(result.integrity).toBe(1.0);
+  });
+
+  it('savePreset and loadPreset round-trip', () => {
+    const engine = new GridEngine(10, 10);
+    const items = [{ id: 1, row: 0, col: 0 }, { id: 2, row: 1, col: 1 }];
+    engine.savePreset('test-loadout', items);
+    const loaded = engine.loadPreset('test-loadout');
+    expect(loaded).toEqual(items);
+    expect(engine.loadPreset('nonexistent')).toEqual([]);
+  });
+});
+
 describe('GridEngine.fromItems', () => {
   it('builds engine with pre-placed items', () => {
     const engine = GridEngine.fromItems(10, 12, [

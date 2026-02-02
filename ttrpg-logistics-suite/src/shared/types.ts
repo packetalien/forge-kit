@@ -11,6 +11,7 @@ export interface Container {
   gridWidth: number;
   gridHeight: number;
   type: 'backpack' | 'rig' | 'pocket' | 'locker' | 'alchemist_case' | 'other';
+  volume_limit?: number | null;
 }
 
 export interface Item {
@@ -93,4 +94,33 @@ export interface PluginManifest {
 export interface PluginAPI {
   registerHook: (event: string, handler: (...args: unknown[]) => void) => void;
   app: unknown;
+}
+
+/** GURPS 4e: definition (master library) */
+export interface ItemDefinition {
+  id: number;
+  name: string;
+  weight: number;
+  volume: number;
+  tl: number;
+  lc: number;
+  malf: number;
+}
+
+/** GURPS 4e: instance (owned item with parent_id for adjacency / recursive CTE) */
+export interface ItemInstance {
+  id: number;
+  def_id: number;
+  parent_id: number | null;
+  quantity: number;
+  quality: number;
+  state: string;
+  condition: number;
+}
+
+/** GURPS 4e: attachment slot (MOLLE/Rail/Holster) */
+export interface Attachment {
+  id: number;
+  parent_id: number;
+  slot_type: string;
 }

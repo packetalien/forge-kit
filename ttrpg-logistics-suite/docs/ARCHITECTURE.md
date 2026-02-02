@@ -113,3 +113,30 @@ graph TD
   API --> GridEngine
   GridEngine --> DB[SQLite]
 ```
+
+## Phase 5: Data Model Update (GURPS)
+
+**ItemDefinitions** and **ItemInstances** (adjacency list): migration **005_gurps_tables.sql**. **item_definitions**: name, weight, volume, tl, lc, malf. **item_instances**: def_id, parent_id, quantity, quality, state, condition. **attachments**: parent_id, slot_type (MOLLE/Rail/Holster). **containers**: added **volume_limit**. **queries.ts**: **getSubtreeWeightRecursive(parentId)** uses a Recursive CTE to sum descendant weight (def.weight * instance.quantity). Shared types: **ItemDefinition**, **ItemInstance**, **Attachment**.
+
+```mermaid
+graph TD
+  ItemInstances --> Recursive CTE
+  ItemDefinitions --> Recursive CTE
+  Recursive CTE --> TotalWeight
+```
+
+## Phase 5: PALS/MOLLE and Loadout Presets
+
+**GridEngine**: **attachPouch(pouch, vest, rows[], cols[])** returns **{ integrity }** (1.0 if &gt;2 strap points, else 0.5). **savePreset(name, items)** / **loadPreset(name)** in-memory (loadout presets). **POST /inventory/attach** (pouchId, vestId, slots { rows, cols }) validates and returns integrity. **GridWithDnD**: Weave Mode hint (hotkey W) for PALS straps.
+
+## Metal Bridge (Phase 5)
+
+**WebGPU** remains the primary render path (InventoryCanvas + liquidGlass.wgsl). A native **Metal 4** bridge (Swift/Objective-C++ addon via node-addon-api) for 3D gear preview and Liquid Glass depth is optional; implementation would embed an MTKView in an Electron child window. If the native addon is deferred, WebGPU continues as the fallback. No new native addon code in this phase.
+
+## Phase 5: Alchemy Refining and State-Based Brewing
+
+**alchemyEngine.ts**: **refineReagent(reagent, skill)** returns **{ purity }** (GURPS-style roll; purity += 0.2 on success). **startBrew(recipe, timeMs)**, **getBrewStatus()** (state: preparation | active | refinement | completion), **setBrewAttendHours**, **clearBrew**. **Reagents** table (006_reagents.sql): name, purity, potency. API: **POST /crafting/refine** (reagent, skill), **GET /crafting/status**, **POST /crafting/brew/start**, **POST /crafting/brew/attend**, **POST /crafting/brew/clear**.
+
+## Phase 5: GM Command API
+
+**gm.ts**: **POST /gm/injectItem** (name, width?, height?, containerId?) — inserts item, broadcasts snapshot, emits onItemCreate and **onWeightChange**. **POST /gm/modifyState** (itemId, state { equipmentSlot? }) — updates item state, broadcasts snapshot, emits onWeightChange. BYOEF hooks: **onWeightChange** for encumbrance plugins. API is **localhost-only** (see SECURITY.md).
