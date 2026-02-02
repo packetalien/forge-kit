@@ -1,0 +1,12 @@
+# macOS Tahoe build targets (used by electron-forge makers)
+appId: com.bakerstreet.ttrpg-logistics-suite
+productName: TTRPG Logistics Suite
+directories:
+  output: out
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+  gatekeeperAssess: false

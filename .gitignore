@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build and output
+.vite/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment and secrets (use ~/.secrets per project rules)
+.env
+.env.*
+!.env.example
+.secrets
+
+# Logs and databases
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.db
+*.sqlite
+*.sqlite3
+
+# Test and coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+*.lcov
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE (optional: remove .vscode if you commit shared settings)
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Electron
+*.dmg
+*.zip
+*.exe
+*.AppImage
+
+# Misc
+.cache/
+.temp/
+tmp/
+temp/
